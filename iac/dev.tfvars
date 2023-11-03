@@ -1,0 +1,7 @@
+region             = "us-east-1"
+key_file_path      = "./quizhero-dev-key-pair.pub"
+vpc_cidr           = "172.31.0.0/16"
+public_subnet_cidr = "172.31.32.0/20"
+instance_type      = "t2.micro"
+availability_zone  = "us-east-1a"
+ami                = "ami-0df435f331839b2d6"
