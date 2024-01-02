@@ -1,0 +1,61 @@
+{% extends 'global/base.html' %}
+
+{% block title %}Habit Tracker | {% endblock title %}
+
+{% block content %}
+
+<div class="row align-items-stretch mt-5">
+    <div id="custom-narrow-col" class="col p-0 bg-body-tertiary">
+        <a href="{% url 'habit_tracker:habit_tracker' week.previous_week previous_year %}" class="w-100">Previous</a>
+    </div>
+    {% for day in days %}
+    <div class="col">
+        <h3 class="text-center">{{day.day_name}}</h3>
+        <p class="text-center">{{day.date}}</p>
+
+        <!-- Habits Section -->
+        <div class="container border rounded mb-3 pb-3 bg-body-tertiary">
+            <p class="text-right mt-1">Habits</p>
+            <div class="list-group">
+                {% for habit in day.habits %}
+                <button type="button" class="list-group-item list-group-item-action d-flex align-items-center"
+                    data-bs-toggle="modal" data-bs-target="#exampleModal">
+                    <input class="form-check-input me-3" type="checkbox" value="" aria-label="...">
+                    {{ habit.name }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+    {% endfor %}
+
+    <div id="custom-narrow-col" class="col p-0 bg-body-tertiary">
+        <a href="{% url 'habit_tracker:habit_tracker' week.next_week next_year %}" class="w-100">Next</a>
+    </div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Modal title</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ...
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary">Save changes</button>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+
+
+{% endblock content %}

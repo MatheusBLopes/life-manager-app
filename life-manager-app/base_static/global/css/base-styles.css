@@ -26,3 +26,14 @@ footer {
   height: 4rem;
   background-color: #1f1f1f;
 }
+
+
+
+/* CSS PARA BOTÕES DO HABIT TRACKER */
+/* MOVER ESSE CÓDIGO PARA OUTRO ARQUIVO ESPECÍFICO ASSIM QUE POSSÍVEL */
+
+#custom-narrow-col {
+  display: flex;
+  max-width: 2%; /* Adjust the percentage as needed */
+}
+

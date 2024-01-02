@@ -1,0 +1,20 @@
+{% extends 'global/base.html' %}
+
+{% block title %}Create Habit | {% endblock title %}
+
+{% block content %}
+
+<div class="d-flex flex-column mt-5 align-items-center">
+    <h1 class="text-center">
+        Create Habit
+    </h1>
+
+    <form class="mt-5" method="post" action="">
+        {% csrf_token %}
+        {{ habit_form.as_p }}
+        <button class="btn btn-primary" type="submit">Submit</button>
+    </form>
+</div>
+
+
+{% endblock content %}

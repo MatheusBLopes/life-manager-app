@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # 3rd party libs
     'apps.finance',
+    'apps.habit_tracker'
 ]
 
 MIDDLEWARE = [
