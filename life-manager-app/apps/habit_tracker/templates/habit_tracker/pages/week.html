@@ -6,8 +6,11 @@
 
 <div class="row align-items-stretch mt-5">
     <div id="custom-narrow-col" class="col p-0 bg-body-tertiary">
-        <a href="{% url 'habit_tracker:habit_tracker' week.previous_week previous_year %}" class="w-100">Previous</a>
+        <a href="{% url 'habit_tracker:habit_tracker' week.previous_week previous_year %}" class="w-100">
+            <span class="bi bi-arrow-left mt-5"></span>
+        </a>
     </div>
+
     {% for day in days %}
     <div class="col">
         <h3 class="text-center">{{day.day_name}}</h3>
@@ -31,7 +34,9 @@
     {% endfor %}
 
     <div id="custom-narrow-col" class="col p-0 bg-body-tertiary">
-        <a href="{% url 'habit_tracker:habit_tracker' week.next_week next_year %}" class="w-100">Next</a>
+        <a href="{% url 'habit_tracker:habit_tracker' week.next_week next_year %}" class="w-100">
+            <span class="bi bi-arrow-right"></span>
+        </a>
     </div>
 
 </div>
@@ -53,9 +58,6 @@
             </div>
         </div>
     </div>
-
-
 </div>
-
 
 {% endblock content %}
