@@ -8,7 +8,9 @@ class HabitForm(forms.ModelForm):
 
     class Meta:
         model = Habit
-        fields = ['user', 'name', 'days_of_week']
+        fields = ['user', 'name', 'days_of_week', 'start_date']
+
+        start_date = forms.DateField(required=True)
     
     def clean_days_of_week(self):
         selected_days = self.cleaned_data['days_of_week']

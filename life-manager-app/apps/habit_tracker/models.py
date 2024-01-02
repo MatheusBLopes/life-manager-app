@@ -20,6 +20,9 @@ class Habit(models.Model):
     name = models.CharField(max_length=255)
     days_of_week = models.ManyToManyField(DayOfWeek, related_name='habits')
 
+    start_date = models.DateField(blank=False, null=False)
+    end_date = models.DateField(blank=True, null=True)
+
 class HabitCompletion(models.Model):
     habit = models.ForeignKey(Habit, on_delete=models.CASCADE)
     date_completed = models.DateField()
