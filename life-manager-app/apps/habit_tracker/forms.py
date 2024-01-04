@@ -38,4 +38,4 @@ class HabitForm(forms.ModelForm):
 class HabitCompletionForm(forms.ModelForm):
     class Meta:
         model = HabitCompletion
-        fields = ['habit', 'date_completed']
+        fields = ['habit', 'date_completed', 'success']

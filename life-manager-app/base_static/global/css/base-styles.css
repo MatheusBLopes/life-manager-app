@@ -3,6 +3,10 @@ html {
   min-height: 100%;
 }
 
+html, body {
+  height: 100%;
+}
+
 body[data-theme='dark'] {
   --bs-bg: #343a40; /* Dark background */
   --bs-color: #f8f9fa; /* Light text color */
@@ -15,7 +19,8 @@ body[data-theme='light'] {
 
 body {
   /* Margin bottom by footer height */
-  padding-bottom: 4rem;
+  padding-bottom: 9rem;
+  padding-top: 4rem;
 }
 
 footer {
@@ -27,6 +32,13 @@ footer {
   background-color: #1f1f1f;
 }
 
+#separator {
+  max-width: 1px;
+  padding: 0;
+  max-height: 90%;
+  margin: 2% 0;
+
+}
 
 
 /* CSS PARA BOTÕES DO HABIT TRACKER */

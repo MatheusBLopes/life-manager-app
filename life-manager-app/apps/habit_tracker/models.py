@@ -23,6 +23,10 @@ class Habit(models.Model):
     start_date = models.DateField(blank=False, null=False)
     end_date = models.DateField(blank=True, null=True)
 
+    def __str__(self):
+        return self.name
+
 class HabitCompletion(models.Model):
     habit = models.ForeignKey(Habit, on_delete=models.CASCADE)
     date_completed = models.DateField()
+    success = models.BooleanField(default=False)

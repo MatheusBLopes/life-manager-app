@@ -8,16 +8,14 @@
     <title>{% block title %}{% endblock title %} Life Manager</title>
 </head>
 
-<body>
+<body class="d-flex flex-column">
     {% block header %}
     {% endblock header %}
     
-
-    <div class="wrapper">
-        <div class="container-fluid">
-            {% block content %}{% endblock content %}
-        </div>
+    <div class="container-fluid flex-grow-1">
+        {% block content %}{% endblock content %}
     </div>
+
 
     {% include 'global/partials/footer.html' %}
 
