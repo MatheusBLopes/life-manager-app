@@ -27,6 +27,30 @@ class Habit(models.Model):
         return self.name
 
 class HabitCompletion(models.Model):
+    SUCCESS = 'success'
+    FAILED = 'failed'
+    NOT_COMPLETED = 'not_completed'
+
+    COMPLETION_CHOICES = [
+        (SUCCESS, 'Success'),
+        (FAILED, 'Failed'),
+        (NOT_COMPLETED, 'Not Completed'),
+    ]
+
+
     habit = models.ForeignKey(Habit, on_delete=models.CASCADE)
-    date_completed = models.DateField()
-    success = models.BooleanField(default=False)
+    creation_date = models.DateField()
+
+    date_completed = models.DateField(blank=True, null=True)
+
+    completion_status = models.CharField(
+        max_length=15,
+        choices=COMPLETION_CHOICES,
+        default=NOT_COMPLETED,
+    )
+
+    description = models.TextField(blank=True, null=True)
+    time_spent = models.DurationField(blank=True, null=True)
+
+    class Meta:
+        unique_together = ('habit', 'creation_date',)

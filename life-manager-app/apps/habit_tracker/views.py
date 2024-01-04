@@ -33,11 +33,27 @@ def get_days_data(date, user):
         total_habits_count = len(habits_with_desired_day)
 
         for habit in habits_with_desired_day:
-            habit_completion = HabitCompletion.objects.filter(habit=habit, date_completed=current_date, success=True)
-            habit.is_completed = True if habit_completion else False
+            habit_completion = HabitCompletion.objects.filter(habit=habit, creation_date=current_date).first()
+            
+            if not habit_completion:
+                HabitCompletion.objects.create(habit=habit, creation_date=current_date, completion_status="not_completed")
+                habit_completion = HabitCompletion.objects.filter(habit=habit, creation_date=current_date).first()
 
-            if habit.is_completed:
+
+            habit.completion_status = habit_completion.completion_status
+
+            if habit.completion_status == 'success':
                 completed_habits_count += 1
+
+            initial_data = {
+                "habit": habit.id,
+                "date_completed": current_date,
+                "completion_status": habit.completion_status,
+                "description": habit_completion.description,
+                "time_spent": habit_completion.time_spent
+            }
+            
+            habit.completion_form = HabitCompletionForm(initial=initial_data)
 
         percentage_completed = round((completed_habits_count / total_habits_count) * 100, 2) if total_habits_count > 0 else 0
 
@@ -77,7 +93,6 @@ def habit_tracker(request, week_number=None, year=None):
     days = get_days_data(today, request.user)
     previous_year, next_year, previous_week, next_week = calculate_weeks_and_years(week_number, today.year)
 
-    habit_completion_form = HabitCompletionForm()
 
     return render(
         request,
@@ -94,7 +109,6 @@ def habit_tracker(request, week_number=None, year=None):
             "next_year": next_year,
             "current_year": year,
             "present_year": datetime.now().date().year,
-            "habit_completion_form": habit_completion_form
         }
     )
 
@@ -114,6 +128,7 @@ def create_habit(request):
 class MarkCompletedView(View):
 
     def post(self, request, *args, **kwargs):
+        breakpoint()
         habit_id = request.POST.get('habit_id')
         habit = Habit.objects.get(id=habit_id, user=request.user)
 
