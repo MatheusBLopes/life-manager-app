@@ -1,3 +1,3 @@
-## Quizhero App
+## Life Manager
 
-My quiz app
+Life manager app
