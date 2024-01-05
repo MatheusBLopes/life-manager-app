@@ -2,71 +2,11 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from datetime import datetime, timedelta
-from .models import Habit, HabitCompletion
-from .forms import HabitForm, HabitCompletionForm
-from django.db.models import Q
+from django.http import HttpResponseRedirect
+
+from .models import Habit, Day, Week, DayOfWeekChoice, HabitRecurrence, HabitSchedule
+
 from django.views import View
-
-def get_start_date_from_week(year, week_number):
-    jan4 = datetime(year, 1, 4)
-    start_of_year_week = jan4 - timedelta(days=jan4.isoweekday() - 1)
-    week_start = start_of_year_week + timedelta(weeks=week_number - 1)
-    return week_start
-
-def get_days_data(date, user):
-    start_date = date - timedelta(days=date.weekday() + 1)
-
-    days = []
-
-    for i in range(7):
-        current_date = start_date + timedelta(days=i)
-        day_name = current_date.strftime("%A")
-
-        habits_with_desired_day = Habit.objects.filter(
-            Q(days_of_week__name=day_name[0:3]) &
-            Q(user=user) &
-            (Q(start_date__lte=current_date) & 
-            (Q(end_date__gte=current_date) | Q(end_date__isnull=True))
-        ))
-
-        completed_habits_count = 0
-        total_habits_count = len(habits_with_desired_day)
-
-        for habit in habits_with_desired_day:
-            habit_completion = HabitCompletion.objects.filter(habit=habit, creation_date=current_date).first()
-            
-            if not habit_completion:
-                HabitCompletion.objects.create(habit=habit, creation_date=current_date, completion_status="not_completed")
-                habit_completion = HabitCompletion.objects.filter(habit=habit, creation_date=current_date).first()
-
-
-            habit.completion_status = habit_completion.completion_status
-
-            if habit.completion_status == 'success':
-                completed_habits_count += 1
-
-            initial_data = {
-                "habit": habit.id,
-                "date_completed": current_date,
-                "completion_status": habit.completion_status,
-                "description": habit_completion.description,
-                "time_spent": habit_completion.time_spent
-            }
-            
-            habit.completion_form = HabitCompletionForm(initial=initial_data)
-
-        percentage_completed = round((completed_habits_count / total_habits_count) * 100, 2) if total_habits_count > 0 else 0
-
-        days.append({
-            "date": current_date.strftime("%d/%m/%Y"),
-            "raw_date": current_date.strftime("%Y-%m-%d"),
-            "day_name": day_name,
-            "habits": habits_with_desired_day,
-            "percentage_completed": percentage_completed
-        })
-
-    return days
-
 
 
 def calculate_weeks_and_years(week_number, year):
@@ -86,23 +26,32 @@ def habit_tracker(request, week_number=None, year=None):
         start_of_week = today - timedelta(days=today.weekday())
         week_number = start_of_week.isocalendar()[1]
         year = today.year
-    else:
-        week_start = get_start_date_from_week(year, week_number)
-        today = week_start
+    
+    current_week, _ = Week.objects.get_or_create(week_number=week_number, year=year)
 
-    days = get_days_data(today, request.user)
-    previous_year, next_year, previous_week, next_week = calculate_weeks_and_years(week_number, today.year)
+    week_days = current_week.get_or_create_days()
 
+    for day in week_days:
+        day.day_name = day.date.strftime("%A")
+        day.formated_date = day.date.strftime("%d/%m/%Y")
+        
+        # Get HabitSchedules for the current day
+        habit_schedules = HabitSchedule.objects.filter(day=day)
+
+        day.habit_schedules = habit_schedules
+
+
+    previous_year, next_year, previous_week, next_week = calculate_weeks_and_years(current_week.week_number, current_week.year)
 
     return render(
         request,
         'habit_tracker/pages/week.html',
         context={
-            "days": days,
+            "days": week_days,
             "week": {
                 'previous_week': previous_week,
                 'next_week': next_week,
-                'current_week': week_number,
+                'current_week': current_week.week_number,
                 'present_week': datetime.now().date().isocalendar()[1]
             },
             "previous_year": previous_year,
@@ -112,38 +61,90 @@ def habit_tracker(request, week_number=None, year=None):
         }
     )
 
+def create_days_and_schedules(habit, habit_recurrence, db_days_of_week):
+    start_date = datetime.strptime(habit_recurrence.start_date, "%Y-%m-%d")
+    final_date = start_date + timedelta(days=365)
+    selected_dates = []
+    db_days_id_list = db_days_of_week.values_list('id', flat=True)
+    current_date = start_date
+    days_dict = {
+        6:1,
+        0:2,
+        1:3,
+        2:4,
+        3:5,
+        4:6,
+        5:7,
+    }
+
+    # Loop through dates until reaching the end date
+    while current_date <= final_date:
+        # Check if the current date's day of the week is in the selected days
+        if days_dict[current_date.weekday()] in db_days_id_list:
+            selected_dates.append(current_date)
+
+        # Move to the next day
+        current_date += timedelta(days=1)
+    
+    for date in selected_dates:
+        Week.objects.get_or_create(week_number=date.isocalendar()[1], year=date.year)
+
+    days_to_schedule = Day.objects.filter(date__in=selected_dates)
+
+    for day in days_to_schedule:
+        HabitSchedule.objects.create(habit=habit, day=day)
+
 @login_required
 def create_habit(request):
     if request.method == 'POST':
-        habit_form = HabitForm(request.POST, user=request.user)
-        if habit_form.is_valid():
-            habit_form.save()
-            return redirect(reverse('habit_tracker:habit_tracker'))
-    else:
-        habit_form = HabitForm(user=request.user)
+        # Accessing the selected habit ID
+        habit_name = request.POST.get('habit_name', None)
+        
+        habit = Habit.objects.create(name=habit_name, user=request.user)
 
-    return render(request, 'habit_tracker/pages/create-habit.html', {'habit_form': habit_form})
+        form_days_of_week = request.POST.getlist('day_of_week')
+        db_days_of_week = DayOfWeekChoice.objects.filter(day_of_week__in=form_days_of_week)
+
+        start_date = request.POST.get('start_date', None)
+        end_date = request.POST.get('end_date', None)
+
+        if not end_date:
+            end_date = None
+
+
+        habit_recurrence = HabitRecurrence.objects.create(habit=habit, start_date=start_date, end_date=end_date)
+        habit_recurrence.days_of_week.add(*db_days_of_week)
+        habit_recurrence.save()
+
+        create_days_and_schedules(habit, habit_recurrence, db_days_of_week)
+
+        return HttpResponseRedirect(reverse('habit_tracker:habit_tracker'))
+    else:
+        habits = Habit.objects.all()
+
+    return render(
+        request, 
+        'habit_tracker/pages/create-habit.html', 
+        context={
+            'habits': habits
+        }
+    )
 
 
 class MarkCompletedView(View):
 
     def post(self, request, *args, **kwargs):
-        breakpoint()
-        habit_id = request.POST.get('habit_id')
-        habit = Habit.objects.get(id=habit_id, user=request.user)
+        habit_schedule_id = request.POST.get('habit_schedule_id')
 
-        date_completed = kwargs['date']
-        success = request.POST.get('success', 'false').lower() == 'true'  # Default to False if not provided or not 'true'
+        habit_schedule = HabitSchedule.objects.get(id=habit_schedule_id)
 
-        # Check if the habit completion record exists for the selected day
-        habit_completion = habit.habitcompletion_set.filter(date_completed=date_completed).first()
+        if habit_schedule:
+            completion_status = request.POST.get('completion_status', None)
+            description = request.POST.get('description', None)
 
-        if habit_completion:
-            # If habit completion exists, update the success field
-            habit_completion.success = success
-            habit_completion.save()
-        else:
-            # If habit completion doesn't exist, create a new record with the provided success value
-            HabitCompletion.objects.create(habit=habit, date_completed=date_completed, success=success)
+            habit_schedule.completion_status = completion_status
+            habit_schedule.description = description
+
+            habit_schedule.save()
 
         return redirect('habit_tracker:habit_tracker', week_number=kwargs['week'], year=kwargs['year'])

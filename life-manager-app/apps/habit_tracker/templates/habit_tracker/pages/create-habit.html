@@ -9,9 +9,52 @@
         Create Habit
     </h1>
 
-    <form class="mt-5" method="post" action="">
+    <form class="mt-5" method="post" action="{% url 'habit_tracker:create_habit' %}">
         {% csrf_token %}
-        {{ habit_form.as_p }}
+        <div class="mb-3">
+            <label for="habitName" class="form-label">Habit Name</label>
+            <input type="text" class="form-control" id="habitName" aria-describedby="habitName" name="habit_name">
+
+
+            <label class="form-label">Days of The Week</label>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="Sunday" name="day_of_week" value="1" >
+                <label class="form-check-label" for="Sunday">Sunday</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="Monday" name="day_of_week" value="2">
+                <label class="form-check-label" for="Monday">Monday</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="Tuesday" name="day_of_week" value="3">
+                <label class="form-check-label" for="Tuesday">Tuesday</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="Wednesday" name="day_of_week" value="4">
+                <label class="form-check-label" for="Wednesday">Wednesday</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="Thursday" name="day_of_week" value="5">
+                <label class="form-check-label" for="Thursday">Thursday</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="Friday" name="day_of_week" value="6">
+                <label class="form-check-label" for="Friday">Friday</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="Saturday" name="day_of_week" value="7">
+                <label class="form-check-label" for="Saturday">Saturday</label>
+            </div>
+
+            <label for="startDate" class="form-label">Start Date</label>
+            <input type="text" class="form-control" id="startDate" aria-describedby="startDate" name="start_date">
+
+
+            <label for="endDate" class="form-label">End Date</label>
+            <input type="text" class="form-control" id="endDate" aria-describedby="endDate" name="end_date">
+
+
+        </div>
         <button class="btn btn-primary" type="submit">Submit</button>
     </form>
 </div>
