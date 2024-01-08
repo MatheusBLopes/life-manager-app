@@ -21,24 +21,24 @@ def calculate_weeks_and_years(week_number, year):
 
 @login_required
 def habit_tracker(request, week_number=None, year=None):
+    # Helper function for formatting dates
+    def format_date(day):
+        day.day_name = day.date.strftime("%A")
+        day.formatted_date = day.date.strftime("%d/%m/%Y")
+
     if week_number is None or year is None:
         today = datetime.now().date()
         start_of_week = today - timedelta(days=today.weekday())
         week_number = start_of_week.isocalendar()[1]
         year = today.year
-    
+
     current_week, _ = Week.objects.get_or_create(week_number=week_number, year=year)
 
-    week_days = current_week.get_or_create_days()
+    week_days = current_week.day_set.all()
 
     for day in week_days:
-        day.day_name = day.date.strftime("%A")
-        day.formated_date = day.date.strftime("%d/%m/%Y")
-        
-        # Get HabitSchedules for the current day
-        habit_schedules = HabitSchedule.objects.filter(day=day)
-
-        day.habit_schedules = habit_schedules
+        format_date(day)
+        day.habit_schedules = HabitSchedule.objects.filter(day=day)
 
 
     previous_year, next_year, previous_week, next_week = calculate_weeks_and_years(current_week.week_number, current_week.year)
@@ -67,6 +67,7 @@ def create_days_and_schedules(habit, habit_recurrence, db_days_of_week):
     selected_dates = []
     db_days_id_list = db_days_of_week.values_list('id', flat=True)
     current_date = start_date
+    #TODO: atualizar o modelo para iniciar a contagem com 0 na segunda feira
     days_dict = {
         6:1,
         0:2,
@@ -116,6 +117,7 @@ def create_habit(request):
         habit_recurrence.days_of_week.add(*db_days_of_week)
         habit_recurrence.save()
 
+        #TODO: Criar apenas os schedules da semana corrente, o restante criar conforme as semanas forem mostradas na tela
         create_days_and_schedules(habit, habit_recurrence, db_days_of_week)
 
         return HttpResponseRedirect(reverse('habit_tracker:habit_tracker'))
