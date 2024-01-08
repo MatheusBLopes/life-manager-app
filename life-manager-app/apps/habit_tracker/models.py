@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 class Week(models.Model):
     year = models.PositiveIntegerField()
-    week_number = models.PositiveIntegerField(unique=True)
+    week_number = models.PositiveIntegerField()
 
     class Meta:
         unique_together = ('year', 'week_number',)
@@ -28,25 +28,6 @@ class Week(models.Model):
                 date = start_date + timezone.timedelta(days=i)
                 Day.objects.get_or_create(date=date, week=self)
 
-    
-    def get_or_create_days(self):
-        # Check if days already exist for this week
-        existing_days = self.day_set.all()
-
-        if not existing_days:
-
-            jan4 = datetime(self.year, 1, 4)
-            start_of_year_week = jan4 - timedelta(days=jan4.isoweekday() - 1)
-            week_start = start_of_year_week + timedelta(weeks=self.week_number - 1)
-
-            # Calculate the start date based on the Sunday of the given week
-            start_date = week_start - timedelta(days=(week_start.weekday() + 1) % 7)
-            for i in range(7):
-                date = start_date + timezone.timedelta(days=i)
-                Day.objects.get_or_create(date=date, week=self)
-
-        return self.day_set.all()
-
 
 class Day(models.Model):
     date = models.DateField(unique=True)
@@ -59,7 +40,6 @@ class Day(models.Model):
 class Habit(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
-    # Add any other fields related to habits
 
     def __str__(self):
         return self.name
