@@ -21,3 +21,9 @@ repos:
       - id: no-commit-to-branch
         args: [-b, main]
       - id: end-of-file-fixer
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: ["--exclude=docs/*,*migrations*", "--ignore=E501,W503,E203"]
