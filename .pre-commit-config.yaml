@@ -27,3 +27,15 @@ repos:
     hooks:
       - id: flake8
         args: ["--exclude=docs/*,*migrations*", "--ignore=E501,W503,E203"]
+
+
+
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.9.0
+    hooks:
+      - id: python-check-mock-methods
+
+  - repo: https://github.com/python/black
+    rev: 23.12.1
+    hooks:
+      - id: black
