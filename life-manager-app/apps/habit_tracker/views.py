@@ -24,7 +24,7 @@ def habit_tracker(request, week_number=None, year=None):
     # Helper function for formatting dates
     def format_date(day):
         day.day_name = day.date.strftime("%A")
-        day.formatted_date = day.date.strftime("%d/%m/%Y")
+        day.formated_date = day.date.strftime("%d/%m/%Y")
 
     if week_number is None or year is None:
         today = datetime.now().date()

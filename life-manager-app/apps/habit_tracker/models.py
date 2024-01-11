@@ -40,6 +40,7 @@ class Day(models.Model):
 class Habit(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
+    goal = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         return self.name
