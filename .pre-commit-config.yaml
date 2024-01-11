@@ -28,7 +28,11 @@ repos:
       - id: flake8
         args: ["--exclude=docs/*,*migrations*", "--ignore=E501,W503,E203"]
 
-
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        name: isort (python)
 
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.9.0
