@@ -28,5 +28,3 @@ variable "availability_zone" {
 variable "ami" {
   default = "ami-0df435f331839b2d6"
 }
-
-

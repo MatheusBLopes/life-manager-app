@@ -1,16 +1,24 @@
 from django.contrib import admin
-from .models import Habit, Day, Week, HabitSchedule, HabitRecurrence, DayOfWeekChoice
 
+from .models import Day, DayOfWeekChoice, Habit, HabitRecurrence, HabitSchedule, Week
 
 
 class WeekAdmin(admin.ModelAdmin):
-    list_display = ('id','week_number',)
+    list_display = (
+        "id",
+        "week_number",
+    )
+
 
 class DayAdmin(admin.ModelAdmin):
-    list_display = ('id','date',)
+    list_display = (
+        "id",
+        "date",
+    )
+
 
 class HabitAdmin(admin.ModelAdmin):
-    list_display = ('name','id','user')
+    list_display = ("name", "id", "user")
 
 
 admin.site.register(Habit, HabitAdmin)

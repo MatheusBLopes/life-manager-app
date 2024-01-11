@@ -1,15 +1,20 @@
 # habit_tracker/models.py
-from django.db import models
-from django.contrib.auth.models import User
-from django.utils import timezone
 from datetime import datetime, timedelta
+
+from django.contrib.auth.models import User
+from django.db import models
+from django.utils import timezone
+
 
 class Week(models.Model):
     year = models.PositiveIntegerField()
     week_number = models.PositiveIntegerField()
 
     class Meta:
-        unique_together = ('year', 'week_number',)
+        unique_together = (
+            "year",
+            "week_number",
+        )
 
     def __str__(self):
         return f"Week {self.week_number}"
@@ -32,10 +37,11 @@ class Week(models.Model):
 class Day(models.Model):
     date = models.DateField(unique=True)
     week = models.ForeignKey(Week, on_delete=models.CASCADE)
-    habits = models.ManyToManyField('Habit', through='HabitSchedule', related_name='scheduled_habits')
+    habits = models.ManyToManyField("Habit", through="HabitSchedule", related_name="scheduled_habits")
 
     def __str__(self):
         return f"{self.date} - Week {self.week.week_number}"
+
 
 class Habit(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -45,9 +51,10 @@ class Habit(models.Model):
     def __str__(self):
         return self.name
 
+
 class HabitRecurrence(models.Model):
     habit = models.ForeignKey(Habit, on_delete=models.CASCADE)
-    days_of_week = models.ManyToManyField('DayOfWeekChoice', related_name='habit_recurrences')
+    days_of_week = models.ManyToManyField("DayOfWeekChoice", related_name="habit_recurrences")
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
 
@@ -56,15 +63,18 @@ class HabitRecurrence(models.Model):
 
 
 class DayOfWeekChoice(models.Model):
-    day_of_week = models.CharField(max_length=10, choices=[
-        ('Sunday', 'Sunday'),
-        ('Monday', 'Monday'),
-        ('Tuesday', 'Tuesday'),
-        ('Wednesday', 'Wednesday'),
-        ('Thursday', 'Thursday'),
-        ('Friday', 'Friday'),
-        ('Saturday', 'Saturday'),
-    ])
+    day_of_week = models.CharField(
+        max_length=10,
+        choices=[
+            ("Sunday", "Sunday"),
+            ("Monday", "Monday"),
+            ("Tuesday", "Tuesday"),
+            ("Wednesday", "Wednesday"),
+            ("Thursday", "Thursday"),
+            ("Friday", "Friday"),
+            ("Saturday", "Saturday"),
+        ],
+    )
 
     def __str__(self):
         return self.get_day_of_week_display()
@@ -74,14 +84,14 @@ class HabitSchedule(models.Model):
     habit = models.ForeignKey(Habit, on_delete=models.CASCADE)
     day = models.ForeignKey(Day, on_delete=models.CASCADE)
 
-    SUCCESS = 'success'
-    FAILED = 'failed'
-    NOT_COMPLETED = 'not_completed'
+    SUCCESS = "success"
+    FAILED = "failed"
+    NOT_COMPLETED = "not_completed"
 
     COMPLETION_CHOICES = [
-        (SUCCESS, 'Success'),
-        (FAILED, 'Failed'),
-        (NOT_COMPLETED, 'Not Completed'),
+        (SUCCESS, "Success"),
+        (FAILED, "Failed"),
+        (NOT_COMPLETED, "Not Completed"),
     ]
 
     completion_status = models.CharField(
@@ -94,7 +104,10 @@ class HabitSchedule(models.Model):
     time_spent = models.DurationField(blank=True, null=True)
 
     class Meta:
-        unique_together = ('habit', 'day',)
+        unique_together = (
+            "habit",
+            "day",
+        )
 
     def __str__(self):
         return f"{self.habit.name} scheduled for {self.day.date}"
