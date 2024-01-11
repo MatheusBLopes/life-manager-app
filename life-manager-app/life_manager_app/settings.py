@@ -9,7 +9,6 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-import ast
 import os
 from pathlib import Path
 
@@ -30,7 +29,7 @@ SECRET_KEY = config("SECRET_KEY", default="")
 DEBUG = True
 
 
-ALLOWED_HOSTS = ast.literal_eval(config("ALLOWED_HOSTS", default="[]"))
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
