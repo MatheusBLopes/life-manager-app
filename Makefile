@@ -58,10 +58,9 @@ tf-dev-env:
 
 tf-apply-dev:
 	cd iac/ terraform apply -var-file=vars-dev.tfvars
-	
+
 tf-prod-env:
 	cd iac/ && terraform workspace select prod
 
 tf-apply-prod:
 	cd iac/ terraform apply -var-file=vars-prod.tfvars
-

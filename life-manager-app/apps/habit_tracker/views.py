@@ -1,72 +1,14 @@
-from django.shortcuts import render, redirect
-from django.urls import reverse
-from django.contrib.auth.decorators import login_required
 from datetime import datetime, timedelta
-from .models import Habit, HabitCompletion
-from .forms import HabitForm, HabitCompletionForm
+
+from django.contrib.auth.decorators import login_required
 from django.db.models import Q
+from django.http import HttpResponseBadRequest, HttpResponseRedirect
+from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.utils import timezone
 from django.views import View
 
-def get_start_date_from_week(year, week_number):
-    jan4 = datetime(year, 1, 4)
-    start_of_year_week = jan4 - timedelta(days=jan4.isoweekday() - 1)
-    week_start = start_of_year_week + timedelta(weeks=week_number - 1)
-    return week_start
-
-def get_days_data(date, user):
-    start_date = date - timedelta(days=date.weekday() + 1)
-
-    days = []
-
-    for i in range(7):
-        current_date = start_date + timedelta(days=i)
-        day_name = current_date.strftime("%A")
-
-        habits_with_desired_day = Habit.objects.filter(
-            Q(days_of_week__name=day_name[0:3]) &
-            Q(user=user) &
-            (Q(start_date__lte=current_date) & 
-            (Q(end_date__gte=current_date) | Q(end_date__isnull=True))
-        ))
-
-        completed_habits_count = 0
-        total_habits_count = len(habits_with_desired_day)
-
-        for habit in habits_with_desired_day:
-            habit_completion = HabitCompletion.objects.filter(habit=habit, creation_date=current_date).first()
-            
-            if not habit_completion:
-                HabitCompletion.objects.create(habit=habit, creation_date=current_date, completion_status="not_completed")
-                habit_completion = HabitCompletion.objects.filter(habit=habit, creation_date=current_date).first()
-
-
-            habit.completion_status = habit_completion.completion_status
-
-            if habit.completion_status == 'success':
-                completed_habits_count += 1
-
-            initial_data = {
-                "habit": habit.id,
-                "date_completed": current_date,
-                "completion_status": habit.completion_status,
-                "description": habit_completion.description,
-                "time_spent": habit_completion.time_spent
-            }
-            
-            habit.completion_form = HabitCompletionForm(initial=initial_data)
-
-        percentage_completed = round((completed_habits_count / total_habits_count) * 100, 2) if total_habits_count > 0 else 0
-
-        days.append({
-            "date": current_date.strftime("%d/%m/%Y"),
-            "raw_date": current_date.strftime("%Y-%m-%d"),
-            "day_name": day_name,
-            "habits": habits_with_desired_day,
-            "percentage_completed": percentage_completed
-        })
-
-    return days
-
+from .models import Day, DayOfWeekChoice, Habit, HabitRecurrence, HabitSchedule, Week
 
 
 def calculate_weeks_and_years(week_number, year):
@@ -79,71 +21,193 @@ def calculate_weeks_and_years(week_number, year):
         raise ValueError("Invalid week number. It should be between 1 and 52.")
     return previous_year, next_year, previous_week, next_week
 
+
 @login_required
 def habit_tracker(request, week_number=None, year=None):
+    # Helper function for formatting dates
+    def format_date(day):
+        day.day_name = day.date.strftime("%A")
+        day.formated_date = day.date.strftime("%d/%m/%Y")
+
     if week_number is None or year is None:
         today = datetime.now().date()
         start_of_week = today - timedelta(days=today.weekday())
         week_number = start_of_week.isocalendar()[1]
         year = today.year
-    else:
-        week_start = get_start_date_from_week(year, week_number)
-        today = week_start
 
-    days = get_days_data(today, request.user)
-    previous_year, next_year, previous_week, next_week = calculate_weeks_and_years(week_number, today.year)
+    current_week, _ = Week.objects.get_or_create(week_number=week_number, year=year)
 
+    week_days = current_week.day_set.all()
+
+    for day in week_days:
+        format_date(day)
+
+        # Pega todas as recorrências que possivelmente possuem essa data
+        active_recurrences = HabitRecurrence.objects.filter(
+            Q(end_date__gte=day.date) | Q(end_date__isnull=True),
+            start_date__lte=day.date,
+        )
+
+        if active_recurrences:
+            # Loop through each active recurrence
+            for recurrence in active_recurrences:
+                # Determine the days of the week for which the habit should be scheduled
+                days_to_schedule = recurrence.days_of_week.filter(day_of_week=day.date.strftime("%A"))
+
+                # Check if there are days to schedule
+                if days_to_schedule.exists():
+                    HabitSchedule.objects.get_or_create(habit=recurrence.habit, day=day)
+
+        day.habit_schedules = HabitSchedule.objects.filter(day=day)
+
+        # Count the number of successful habit schedules for the day
+        successful_schedules_count = HabitSchedule.objects.filter(
+            day=day, completion_status="success"
+        ).count()
+
+        # Calculate the percentage
+        total_schedules_count = HabitSchedule.objects.filter(day=day).count()
+        percentage_success = (
+            (successful_schedules_count / total_schedules_count) * 100 if total_schedules_count > 0 else 0
+        )
+
+        day.percentage_success = round(percentage_success, 2)
+
+    previous_year, next_year, previous_week, next_week = calculate_weeks_and_years(
+        current_week.week_number, current_week.year
+    )
 
     return render(
         request,
-        'habit_tracker/pages/week.html',
+        "habit_tracker/pages/week.html",
         context={
-            "days": days,
+            "days": week_days,
             "week": {
-                'previous_week': previous_week,
-                'next_week': next_week,
-                'current_week': week_number,
-                'present_week': datetime.now().date().isocalendar()[1]
+                "previous_week": previous_week,
+                "next_week": next_week,
+                "current_week": current_week.week_number,
+                "present_week": datetime.now().date().isocalendar()[1],
             },
             "previous_year": previous_year,
             "next_year": next_year,
             "current_year": year,
             "present_year": datetime.now().date().year,
-        }
+        },
     )
+
+
+def create_schedules(habit, habit_recurrence, db_days_of_week):
+    start_date = datetime.strptime(habit_recurrence.start_date, "%Y-%m-%d")
+    final_date = start_date + timedelta(days=7)
+    selected_dates = []
+    db_days_list = db_days_of_week.values_list("day_of_week", flat=True)
+    current_date = start_date
+
+    # Loop through dates until reaching the end date
+    while current_date <= final_date:
+        # Check if the current date's day of the week is in the selected days
+        if current_date.strftime("%A") in db_days_list:
+            selected_dates.append(current_date)
+
+        # Move to the next day
+        current_date += timedelta(days=1)
+
+    for date in selected_dates:
+        Week.objects.get_or_create(week_number=date.isocalendar()[1], year=date.year)
+
+    days_to_schedule = Day.objects.filter(date__in=selected_dates)
+
+    for day in days_to_schedule:
+        HabitSchedule.objects.create(habit=habit, day=day)
+
 
 @login_required
 def create_habit(request):
-    if request.method == 'POST':
-        habit_form = HabitForm(request.POST, user=request.user)
-        if habit_form.is_valid():
-            habit_form.save()
-            return redirect(reverse('habit_tracker:habit_tracker'))
-    else:
-        habit_form = HabitForm(user=request.user)
+    if request.method == "POST":
+        # Accessing the selected habit ID
+        habit_name = request.POST.get("habit_name", None)
 
-    return render(request, 'habit_tracker/pages/create-habit.html', {'habit_form': habit_form})
+        habit = Habit.objects.create(name=habit_name, user=request.user)
+
+        form_days_of_week = request.POST.getlist("day_of_week")
+        db_days_of_week = DayOfWeekChoice.objects.filter(day_of_week__in=form_days_of_week)
+
+        start_date = request.POST.get("start_date", None)
+        end_date = request.POST.get("end_date", None)
+
+        if not end_date:
+            end_date = None
+
+        habit_recurrence = HabitRecurrence.objects.create(
+            habit=habit, start_date=start_date, end_date=end_date
+        )
+        habit_recurrence.days_of_week.add(*db_days_of_week)
+        habit_recurrence.save()
+
+        create_schedules(habit, habit_recurrence, db_days_of_week)
+
+        return HttpResponseRedirect(reverse("habit_tracker:habit_tracker"))
+    else:
+        habits = Habit.objects.all()
+
+    return render(request, "habit_tracker/pages/create-habit.html", context={"habits": habits})
+
+
+@login_required
+def update_recurrence(request):
+    if request.method == "POST":
+        form_days_of_week = request.POST.getlist("day_of_week")
+        start_date = request.POST.get("start_date", None)
+        habit_to_update_id = request.POST.get("habit_to_update", None)
+
+        if not all([form_days_of_week, start_date, habit_to_update_id]):
+            return HttpResponseBadRequest("Invalid form data.")
+
+        try:
+            habit_to_update = Habit.objects.get(id=habit_to_update_id)
+        except Habit.DoesNotExist:
+            return HttpResponseBadRequest("Invalid habit id.")
+
+        # Parse start_date to a datetime object
+        start_date = timezone.datetime.strptime(start_date, "%Y-%m-%d").date()
+
+        recurrence = HabitRecurrence.objects.filter(
+            habit=habit_to_update,
+        ).first()
+
+        # Update days_of_week for the recurrence
+        recurrence.days_of_week.set(DayOfWeekChoice.objects.filter(day_of_week__in=form_days_of_week))
+        recurrence.start_date = start_date
+        recurrence.save()
+
+        # Delete schedules after the start_date
+        schedules_to_delete = HabitSchedule.objects.filter(
+            habit=habit_to_update,
+            day__date__gte=start_date,
+        )
+
+        schedules_to_delete.delete()
+
+        return redirect("habit_tracker:habit_tracker")
+
+    else:
+        habits = Habit.objects.all()
+        return render(request, "habit_tracker/pages/update-recurrence.html", context={"habits": habits})
 
 
 class MarkCompletedView(View):
-
     def post(self, request, *args, **kwargs):
-        breakpoint()
-        habit_id = request.POST.get('habit_id')
-        habit = Habit.objects.get(id=habit_id, user=request.user)
+        habit_schedule_id = request.POST.get("habit_schedule_id")
 
-        date_completed = kwargs['date']
-        success = request.POST.get('success', 'false').lower() == 'true'  # Default to False if not provided or not 'true'
+        habit_schedule = HabitSchedule.objects.get(id=habit_schedule_id)
 
-        # Check if the habit completion record exists for the selected day
-        habit_completion = habit.habitcompletion_set.filter(date_completed=date_completed).first()
+        if habit_schedule:
+            completion_status = request.POST.get("completion_status", None)
+            description = request.POST.get("description", None)
 
-        if habit_completion:
-            # If habit completion exists, update the success field
-            habit_completion.success = success
-            habit_completion.save()
-        else:
-            # If habit completion doesn't exist, create a new record with the provided success value
-            HabitCompletion.objects.create(habit=habit, date_completed=date_completed, success=success)
+            habit_schedule.completion_status = completion_status
+            habit_schedule.description = description
 
-        return redirect('habit_tracker:habit_tracker', week_number=kwargs['week'], year=kwargs['year'])
+            habit_schedule.save()
+
+        return redirect("habit_tracker:habit_tracker", week_number=kwargs["week"], year=kwargs["year"])

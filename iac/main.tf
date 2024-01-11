@@ -38,5 +38,3 @@ resource "aws_instance" "quizhero_instance" {
     Name = "quizhero-instance"
   }
 }
-
-

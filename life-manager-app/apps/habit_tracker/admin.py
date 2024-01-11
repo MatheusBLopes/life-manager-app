@@ -1,22 +1,29 @@
 from django.contrib import admin
-from .models import Habit, HabitCompletion, DayOfWeek
-from .forms import HabitForm
-from django import forms
+
+from .models import Day, DayOfWeekChoice, Habit, HabitRecurrence, HabitSchedule, Week
 
 
-class DayOfWeekAdmin(admin.ModelAdmin):
-    list_display = ('id','name',)
+class WeekAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "week_number",
+    )
+
+
+class DayAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "date",
+    )
+
 
 class HabitAdmin(admin.ModelAdmin):
-    list_display = ('name','id','user','get_days_of_week')
-
-    def get_days_of_week(self, obj):
-        return ", ".join([day.name for day in obj.days_of_week.all()])
-
-    get_days_of_week.short_description = 'Days of Week'
-
+    list_display = ("name", "id", "user")
 
 
 admin.site.register(Habit, HabitAdmin)
-admin.site.register(HabitCompletion)
-admin.site.register(DayOfWeek, DayOfWeekAdmin)
+admin.site.register(HabitSchedule)
+admin.site.register(HabitRecurrence)
+admin.site.register(Week, WeekAdmin)
+admin.site.register(Day, DayAdmin)
+admin.site.register(DayOfWeekChoice)
