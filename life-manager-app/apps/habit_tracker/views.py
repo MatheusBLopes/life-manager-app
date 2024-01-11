@@ -64,6 +64,15 @@ def habit_tracker(request, week_number=None, year=None):
 
         day.habit_schedules = HabitSchedule.objects.filter(day=day)
 
+        # Count the number of successful habit schedules for the day
+        successful_schedules_count = HabitSchedule.objects.filter(day=day, completion_status="success").count()
+
+        # Calculate the percentage
+        total_schedules_count = HabitSchedule.objects.filter(day=day).count()
+        percentage_success = (successful_schedules_count / total_schedules_count) * 100 if total_schedules_count > 0 else 0
+
+        day.percentage_success = round(percentage_success, 2)
+
 
     previous_year, next_year, previous_week, next_week = calculate_weeks_and_years(current_week.week_number, current_week.year)
 
