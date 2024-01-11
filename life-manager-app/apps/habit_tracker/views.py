@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from datetime import datetime, timedelta
 from django.http import HttpResponseRedirect
+from django.db.models import Q
 
 from .models import Habit, Day, Week, DayOfWeekChoice, HabitRecurrence, HabitSchedule
 
@@ -38,7 +39,29 @@ def habit_tracker(request, week_number=None, year=None):
 
     for day in week_days:
         format_date(day)
-        day.habit_schedules = HabitSchedule.objects.filter(day=day)
+        habit_schedules_list = []
+
+        # Pega todas as recorrências que possivelmente possuem essa data
+        active_recurrences = HabitRecurrence.objects.filter(Q(end_date__gte=day.date) | Q(end_date__isnull=True), start_date__lte=day.date, )
+
+        if active_recurrences:
+            # Loop through each active recurrence
+            for recurrence in active_recurrences:
+                
+                # Determine the days of the week for which the habit should be scheduled
+                days_to_schedule = recurrence.days_of_week.filter(day_of_week=day.date.strftime("%A"))
+
+                # Check if there are days to schedule
+                if days_to_schedule.exists():
+                    # Create or update the HabitSchedule
+                    habit_schedule, created = HabitSchedule.objects.get_or_create(
+                        habit=recurrence.habit,
+                        day=day
+                    )
+
+                    habit_schedules_list.append(habit_schedule)
+
+        day.habit_schedules = habit_schedules_list
 
 
     previous_year, next_year, previous_week, next_week = calculate_weeks_and_years(current_week.week_number, current_week.year)
@@ -63,25 +86,16 @@ def habit_tracker(request, week_number=None, year=None):
 
 def create_days_and_schedules(habit, habit_recurrence, db_days_of_week):
     start_date = datetime.strptime(habit_recurrence.start_date, "%Y-%m-%d")
-    final_date = start_date + timedelta(days=365)
+    final_date = start_date + timedelta(days=7)
     selected_dates = []
-    db_days_id_list = db_days_of_week.values_list('id', flat=True)
+    db_days_id_list = db_days_of_week.values_list('day_of_week', flat=True)
     current_date = start_date
-    #TODO: atualizar o modelo para iniciar a contagem com 0 na segunda feira
-    days_dict = {
-        6:1,
-        0:2,
-        1:3,
-        2:4,
-        3:5,
-        4:6,
-        5:7,
-    }
+
 
     # Loop through dates until reaching the end date
     while current_date <= final_date:
         # Check if the current date's day of the week is in the selected days
-        if days_dict[current_date.weekday()] in db_days_id_list:
+        if current_date.strftime("%A") in db_days_id_list:
             selected_dates.append(current_date)
 
         # Move to the next day
@@ -117,7 +131,6 @@ def create_habit(request):
         habit_recurrence.days_of_week.add(*db_days_of_week)
         habit_recurrence.save()
 
-        #TODO: Criar apenas os schedules da semana corrente, o restante criar conforme as semanas forem mostradas na tela
         create_days_and_schedules(habit, habit_recurrence, db_days_of_week)
 
         return HttpResponseRedirect(reverse('habit_tracker:habit_tracker'))

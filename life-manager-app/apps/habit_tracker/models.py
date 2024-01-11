@@ -55,14 +55,14 @@ class HabitRecurrence(models.Model):
         return f"{self.habit.name} recurrence on {', '.join(day.get_day_of_week_display() for day in self.days_of_week.all())}"
 
 class DayOfWeekChoice(models.Model):
-    day_of_week = models.PositiveIntegerField(choices=[
-        (1, 'Sunday'),
-        (2, 'Monday'),
-        (3, 'Tuesday'),
-        (4, 'Wednesday'),
-        (5, 'Thursday'),
-        (6, 'Friday'),
-        (7, 'Saturday'),
+    day_of_week = models.CharField(max_length=10, choices=[
+        ('Sunday', 'Sunday'),
+        ('Monday', 'Monday'),
+        ('Tuesday', 'Tuesday'),
+        ('Wednesday', 'Wednesday'),
+        ('Thursday', 'Thursday'),
+        ('Friday', 'Friday'),
+        ('Saturday', 'Saturday'),
     ])
 
     def __str__(self):
