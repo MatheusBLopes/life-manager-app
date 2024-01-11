@@ -54,6 +54,18 @@ class HabitRecurrence(models.Model):
     def __str__(self):
         return f"{self.habit.name} recurrence on {', '.join(day.get_day_of_week_display() for day in self.days_of_week.all())}"
 
+
+    def get_next_occurrence(self, start_date, day_of_week):
+        days_of_week = list(self.days_of_week.values_list('day_of_week', flat=True))
+        start_weekday = start_date.weekday()
+        target_weekday = DayOfWeekChoice.objects.get(day_of_week=day_of_week).id
+
+        days_to_add = (target_weekday - start_weekday) % 7
+        if days_to_add == 0:
+            days_to_add = 7
+
+        return start_date + timedelta(days=days_to_add)
+
 class DayOfWeekChoice(models.Model):
     day_of_week = models.CharField(max_length=10, choices=[
         ('Sunday', 'Sunday'),

@@ -5,6 +5,10 @@ from datetime import datetime, timedelta
 from django.http import HttpResponseRedirect
 from django.db.models import Q
 
+from django.http import HttpResponseBadRequest
+from django.db import transaction
+from django.utils import timezone
+
 from .models import Habit, Day, Week, DayOfWeekChoice, HabitRecurrence, HabitSchedule
 
 from django.views import View
@@ -39,7 +43,6 @@ def habit_tracker(request, week_number=None, year=None):
 
     for day in week_days:
         format_date(day)
-        habit_schedules_list = []
 
         # Pega todas as recorrências que possivelmente possuem essa data
         active_recurrences = HabitRecurrence.objects.filter(Q(end_date__gte=day.date) | Q(end_date__isnull=True), start_date__lte=day.date, )
@@ -53,15 +56,13 @@ def habit_tracker(request, week_number=None, year=None):
 
                 # Check if there are days to schedule
                 if days_to_schedule.exists():
-                    # Create or update the HabitSchedule
-                    habit_schedule, created = HabitSchedule.objects.get_or_create(
+                    HabitSchedule.objects.get_or_create(
                         habit=recurrence.habit,
                         day=day
                     )
 
-                    habit_schedules_list.append(habit_schedule)
 
-        day.habit_schedules = habit_schedules_list
+        day.habit_schedules = HabitSchedule.objects.filter(day=day)
 
 
     previous_year, next_year, previous_week, next_week = calculate_weeks_and_years(current_week.week_number, current_week.year)
@@ -84,18 +85,18 @@ def habit_tracker(request, week_number=None, year=None):
         }
     )
 
-def create_days_and_schedules(habit, habit_recurrence, db_days_of_week):
+def create_schedules(habit, habit_recurrence, db_days_of_week):
     start_date = datetime.strptime(habit_recurrence.start_date, "%Y-%m-%d")
     final_date = start_date + timedelta(days=7)
     selected_dates = []
-    db_days_id_list = db_days_of_week.values_list('day_of_week', flat=True)
+    db_days_list = db_days_of_week.values_list('day_of_week', flat=True)
     current_date = start_date
 
 
     # Loop through dates until reaching the end date
     while current_date <= final_date:
         # Check if the current date's day of the week is in the selected days
-        if current_date.strftime("%A") in db_days_id_list:
+        if current_date.strftime("%A") in db_days_list:
             selected_dates.append(current_date)
 
         # Move to the next day
@@ -131,7 +132,7 @@ def create_habit(request):
         habit_recurrence.days_of_week.add(*db_days_of_week)
         habit_recurrence.save()
 
-        create_days_and_schedules(habit, habit_recurrence, db_days_of_week)
+        create_schedules(habit, habit_recurrence, db_days_of_week)
 
         return HttpResponseRedirect(reverse('habit_tracker:habit_tracker'))
     else:
@@ -144,6 +145,75 @@ def create_habit(request):
             'habits': habits
         }
     )
+
+@login_required
+def update_recurrence(request):
+    if request.method == 'POST':
+        form_days_of_week = request.POST.getlist('day_of_week')
+        start_date = request.POST.get('start_date', None)
+        habit_to_update_id = request.POST.get('habit_to_update', None)
+
+        if not all([form_days_of_week, start_date, habit_to_update_id]):
+            return HttpResponseBadRequest("Invalid form data.")
+
+        try:
+            habit_to_update = Habit.objects.get(id=habit_to_update_id)
+        except Habit.DoesNotExist:
+            return HttpResponseBadRequest("Invalid habit id.")
+
+        # Parse start_date to a datetime object
+        start_date = timezone.datetime.strptime(start_date, "%Y-%m-%d").date()
+
+        recurrence = HabitRecurrence.objects.filter(
+            habit=habit_to_update,
+        ).first()
+
+        # Update days_of_week for the recurrence
+        recurrence.days_of_week.set(DayOfWeekChoice.objects.filter(day_of_week__in=form_days_of_week))
+        recurrence.start_date = start_date
+        recurrence.save()
+
+        # Delete schedules after the start_date
+        schedules_to_delete = HabitSchedule.objects.filter(
+            habit=habit_to_update,
+            day__date__gte=start_date,
+        )
+
+        schedules_to_delete.delete()
+
+        # final_date = start_date + timedelta(days=7)
+        # selected_dates = []
+        # db_days_list = recurrence.days_of_week.values_list('day_of_week', flat=True)
+        # current_date = start_date
+
+
+        # # Loop through dates until reaching the end date
+        # while current_date <= final_date:
+        #     # Check if the current date's day of the week is in the selected days
+        #     if current_date.strftime("%A") in db_days_list:
+        #         selected_dates.append(current_date)
+
+        #     # Move to the next day
+        #     current_date += timedelta(days=1)
+        
+        # for date in selected_dates:
+        #     Week.objects.get_or_create(week_number=date.isocalendar()[1], year=date.year)
+
+        # days_to_schedule = Day.objects.filter(date__in=selected_dates)
+
+        # for day in days_to_schedule:
+        #     HabitSchedule.objects.create(habit=habit_to_update, day=day)
+
+
+        return redirect('habit_tracker:habit_tracker')  # Replace 'your_success_url' with the actual URL you want to redirect to
+
+    else:
+        habits = Habit.objects.all()
+        return render(
+            request, 
+            'habit_tracker/pages/update-recurrence.html',
+            context={'habits': habits}
+        )
 
 
 class MarkCompletedView(View):
