@@ -23,14 +23,13 @@ body {
   padding-top: 4rem;
 }
 
-footer {
+/* footer {
   position: absolute;
   bottom: 0;
   width: 100%;
-  /* Set the fixed height of the footer here */
   height: 4rem;
   background-color: #1f1f1f;
-}
+} */
 
 #separator {
   max-width: 1px;
