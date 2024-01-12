@@ -39,6 +39,12 @@ body {
 
 }
 
+#goal {
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+  color: #76818d;
+}
+
 
 /* CSS PARA BOTÕES DO HABIT TRACKER */
 /* MOVER ESSE CÓDIGO PARA OUTRO ARQUIVO ESPECÍFICO ASSIM QUE POSSÍVEL */
