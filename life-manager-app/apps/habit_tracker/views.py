@@ -58,7 +58,7 @@ def habit_tracker(request, week_number=None, year=None):
                 if days_to_schedule.exists():
                     HabitSchedule.objects.get_or_create(habit=recurrence.habit, day=day)
 
-        day.habit_schedules = HabitSchedule.objects.filter(day=day)
+        day.habit_schedules = HabitSchedule.objects.filter(day=day).order_by("habit__name")
 
         # Count the number of successful habit schedules for the day
         successful_schedules_count = HabitSchedule.objects.filter(
