@@ -174,7 +174,7 @@ class MarkCompletedView(View):
             habit_schedule.description = description
 
             # Convert time_spent to timedelta and update the habit_schedule
-            if time_spent is not None:
+            if time_spent is not None and time_spent != "":
                 time_spent_minutes = int(time_spent)
                 habit_schedule.time_spent = timedelta(minutes=time_spent_minutes)
 
