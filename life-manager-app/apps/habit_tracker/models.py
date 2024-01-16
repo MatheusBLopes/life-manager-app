@@ -101,7 +101,7 @@ class HabitSchedule(models.Model):
     )
 
     description = models.TextField(blank=True, null=True)
-    time_spent = models.DurationField(blank=True, null=True)
+    time_spent = models.DurationField(blank=True, null=True, default=0)
 
     class Meta:
         unique_together = (

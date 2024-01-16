@@ -45,6 +45,10 @@ def habit_tracker(request, week_number=None, year=None):
 
         day.habit_schedules = HabitSchedule.objects.filter(day=day).order_by("habit__name")
 
+        for habit_schedule in day.habit_schedules:
+            if habit_schedule.time_spent:
+                habit_schedule.time_spent = int(round(habit_schedule.time_spent.total_seconds() / 60))
+
         # Count the number of successful habit schedules for the day
         successful_schedules_count = HabitSchedule.objects.filter(
             day=day, completion_status="success"
@@ -164,9 +168,15 @@ class MarkCompletedView(View):
         if habit_schedule:
             completion_status = request.POST.get("completion_status", None)
             description = request.POST.get("description", None)
+            time_spent = request.POST.get("time_spent", None)
 
             habit_schedule.completion_status = completion_status
             habit_schedule.description = description
+
+            # Convert time_spent to timedelta and update the habit_schedule
+            if time_spent is not None:
+                time_spent_minutes = int(time_spent)
+                habit_schedule.time_spent = timedelta(minutes=time_spent_minutes)
 
             habit_schedule.save()
 
