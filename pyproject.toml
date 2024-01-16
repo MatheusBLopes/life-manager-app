@@ -14,6 +14,7 @@ known_local_folder = "apps,utils,tests,life_manager_app"
 sections = "FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER"
 default_section = "THIRDPARTY"
 
+
 [tool.poetry]
 name = "life-manager-app"
 version = "0.1.0"
@@ -29,15 +30,16 @@ prettyconf = "^2.2.1"
 whitenoise = "^6.6.0"
 gunicorn = "^21.2.0"
 gevent = "^23.9.1"
-pre-commit = "^3.6.0"
-commitizen = "^3.13.0"
 psycopg2 = "^2.9.9"
 psycopg2-binary = "^2.9.9"
 
 
-
 [tool.poetry.group.dev.dependencies]
 faker = "^19.4.0"
+commitizen = "^3.13.0"
+pre-commit = "^3.6.0"
+pytest = "^7.4.4"
+pytest-django = "^4.7.0"
 
 
 [tool.commitizen]
@@ -46,6 +48,8 @@ tag_format = "$version"
 version_scheme = "semver"
 version_provider = "poetry"
 major_version_zero = true
+
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
