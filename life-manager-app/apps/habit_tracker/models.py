@@ -1,4 +1,3 @@
-# habit_tracker/models.py
 from datetime import datetime, timedelta
 
 from django.contrib.auth.models import User
@@ -74,6 +73,7 @@ class DayOfWeekChoice(models.Model):
             ("Friday", "Friday"),
             ("Saturday", "Saturday"),
         ],
+        unique=True,
     )
 
     def __str__(self):
@@ -101,7 +101,7 @@ class HabitSchedule(models.Model):
     )
 
     description = models.TextField(blank=True, null=True)
-    time_spent = models.DurationField(blank=True, null=True, default=0)
+    time_spent = models.DurationField(blank=True, null=True, default=timedelta(minutes=0))
 
     class Meta:
         unique_together = (
