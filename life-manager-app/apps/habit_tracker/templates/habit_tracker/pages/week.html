@@ -91,7 +91,12 @@
 
                         <div class="mb-3">
                             <label for="description" class="form-label">Description</label>
-                            <textarea class="form-control" id="description" name="description"></textarea>
+                            {% if habit_schedule.time_spent != 0 %}
+                                <textarea class="form-control" id="description" name="description">{{ habit_schedule.description }}</textarea>
+                            {% else %}
+                                <textarea class="form-control" id="description" name="description"></textarea>
+                            {% endif %}
+
                         </div>
 
 
